@@ -1,8 +1,12 @@
 {
-  "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
     {
-      "source": "/",
-      "destination": "/api/owner"
+      "src": "^/$",
+      "dest": "/api/owner"
+    },
+    {
+      "handle": "filesystem"
     }
   ]
 }
