@@ -2,48 +2,46 @@ name: Owner layer cleanup
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '.github/workflows/owner-layer-cleanup.yml'
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: write
 
 jobs:
-  patch-owner-page:
+  patch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Patch owner-facing copy and Telegram handoff
-        shell: python
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Patch owner page
         run: |
+          python3 <<'PY'
           from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
 
-          path = Path('index.html')
-          s = path.read_text(encoding='utf-8')
+          s = s.replace(
+            '<div class="fact"><b>VK</b><span>подключён к Postmypost</span></div>',
+            '<div class="fact"><b>Контент</b><span>единый контент-контур</span></div>'
+          )
+          s = s.replace(
+            '<div class="channel-line"><b>Что известно</b><span>Подключение channel_coffee_waffles в Postmypost активно.</span></div>',
+            '<div class="channel-line"><b>Что известно</b><span>Площадка присутствует в контуре, но исходные метрики и публичную ссылку нужно подтвердить.</span></div>'
+          )
 
-          replacements = [
-              (
-                  '<div class="fact"><b>VK</b><span>подключён к Postmypost</span></div>',
-                  '<div class="fact"><b>Контент</b><span>единый контент-контур</span></div>'
-              ),
-              (
-                  '<div class="channel-line"><b>Что известно</b><span>Подключение channel_coffee_waffles в Postmypost активно.</span></div>',
-                  '<div class="channel-line"><b>Что известно</b><span>Площадка присутствует в контуре, но исходные метрики и публичную ссылку нужно подтвердить.</span></div>'
-              ),
-              (
-                  '''      <article class="channel">
+          old_card = '''      <article class="channel">
         <div class="channel-top"><h3>Postmypost</h3><div class="current"><b>3</b><span>активных подключения</span></div></div>
         <div class="channel-body">
           <div class="channel-line"><b>Подключено</b><span>VK + Instagram + MAX.</span></div>
           <div class="channel-line"><b>Роль</b><span>Издательский контур и аналитика публикаций. Яндекс ведём отдельно. Telegram добавляем в общий контент-контур после подтверждения канала.</span></div>
           <div class="channel-line"><b>Сейчас</b><span>Ничего не публикуем до согласования собственника.</span></div>
         </div>
-      </article>''',
-                  '''      <article class="channel">
+      </article>'''
+          new_card = '''      <article class="channel">
         <div class="channel-top"><h3>Единый контент-контур</h3><div class="current"><b>4</b><span>социальные площадки</span></div></div>
         <div class="channel-body">
           <div class="channel-line"><b>В контуре</b><span>VK + Instagram + Telegram + MAX. Яндекс ведём отдельно как карточку спроса и репутации.</span></div>
@@ -51,21 +49,22 @@ jobs:
           <div class="channel-line"><b>Сейчас</b><span>Ничего не публикуем до согласования собственника.</span></div>
         </div>
       </article>'''
-              ),
-              (
-                  '<p class="lede">После формы не нужно писать отдельное сообщение. Кнопка сама собирает ответы, копирует их и открывает чат Кавы в Telegram.</p>',
-                  '<p class="lede">После формы не нужно писать отдельное сообщение. Кнопка сама собирает ответы и открывает личные сообщения @kava_studia в Telegram уже с готовым черновиком.</p>'
-              ),
-              (
-                  '<p>Кнопка соберёт все ответы в одно сообщение, скопирует его в буфер и сразу откроет указанный чат Telegram. Останется вставить сообщение и нажать «Отправить».</p>',
-                  '<p>Кнопка соберёт все ответы, откроет личные сообщения @kava_studia и сразу подставит готовый текст. Останется только нажать «Отправить». Копия текста также сохранится в буфере как запасной вариант.</p>'
-              ),
-              (
-                  "const TELEGRAM_CHAT_URL='https://web.telegram.org/a/#-1003493434248';",
-                  "const TELEGRAM_USERNAME='kava_studia';"
-              ),
-              (
-                  """document.getElementById('sendTelegram').addEventListener('click',async()=>{
+          s = s.replace(old_card, new_card)
+
+          s = s.replace(
+            '<p class="lede">После формы не нужно писать отдельное сообщение. Кнопка сама собирает ответы, копирует их и открывает чат Кавы в Telegram.</p>',
+            '<p class="lede">После формы не нужно писать отдельное сообщение. Кнопка сама собирает ответы и открывает личные сообщения @kava_studia в Telegram уже с готовым черновиком.</p>'
+          )
+          s = s.replace(
+            '<p>Кнопка соберёт все ответы в одно сообщение, скопирует его в буфер и сразу откроет указанный чат Telegram. Останется вставить сообщение и нажать «Отправить».</p>',
+            '<p>Кнопка соберёт все ответы, откроет личные сообщения @kava_studia и сразу подставит готовый текст. Останется только нажать «Отправить». Копия текста также сохранится в буфере как запасной вариант.</p>'
+          )
+          s = s.replace(
+            "const TELEGRAM_CHAT_URL='https://web.telegram.org/a/#-1003493434248';",
+            "const TELEGRAM_USERNAME='kava_studia';"
+          )
+
+          old_js = '''document.getElementById('sendTelegram').addEventListener('click',async()=>{
   const text=collectAnswers();
   await copyText(text);
   statusEl.textContent='Ответы скопированы. Открываю чат Кавы в Telegram — вставьте сообщение и отправьте.';
@@ -74,8 +73,8 @@ jobs:
   if(!opened){
     window.location.href=TELEGRAM_CHAT_URL;
   }
-});""",
-                  """document.getElementById('sendTelegram').addEventListener('click',async()=>{
+});'''
+          new_js = '''document.getElementById('sendTelegram').addEventListener('click',async()=>{
   const text=collectAnswers();
   await copyText(text);
   const telegramUrl='https://t.me/'+TELEGRAM_USERNAME+'?text='+encodeURIComponent(text);
@@ -85,39 +84,26 @@ jobs:
   if(!opened){
     window.location.href=telegramUrl;
   }
-});"""
-              )
-          ]
+});'''
+          s = s.replace(old_js, new_js)
 
-          changed = 0
-          for old, new in replacements:
-              if old in s:
-                  s = s.replace(old, new)
-                  changed += 1
-              else:
-                  print('Pattern not found:', old[:100].replace('\n', ' '))
+          if 'Postmypost' in s:
+            raise SystemExit('Postmypost still visible')
+          if "TELEGRAM_USERNAME='kava_studia'" not in s:
+            raise SystemExit('Telegram username patch failed')
+          if "'https://t.me/'+TELEGRAM_USERNAME+'?text='" not in s:
+            raise SystemExit('Telegram deep link patch failed')
 
-          path.write_text(s, encoding='utf-8')
-          print(f'Applied {changed}/{len(replacements)} replacements')
-      - name: Verify private implementation stays private
-        shell: bash
-        run: |
-          if grep -qi 'Postmypost' index.html; then
-            echo 'Internal publishing tool is still visible in owner page'
-            grep -ni 'Postmypost' index.html
-            exit 1
-          fi
-          grep -q "TELEGRAM_USERNAME='kava_studia'" index.html
-          grep -q "https://t.me/" index.html
-      - name: Commit patched owner page
-        shell: bash
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit
         run: |
           if git diff --quiet -- index.html; then
-            echo 'No index.html changes needed'
+            echo "Nothing to commit"
             exit 0
           fi
-          git config user.name 'kava-studia'
-          git config user.email 'yukava25@gmail.com'
+          git config user.name "kava-studia"
+          git config user.email "yukava25@gmail.com"
           git add index.html
-          git commit -m 'Keep publishing stack private and prefill Telegram reply'
+          git commit -m "Keep publishing stack private and prefill Telegram reply"
           git push
