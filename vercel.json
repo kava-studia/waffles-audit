@@ -3,7 +3,7 @@
   "routes": [
     {
       "src": "^/$",
-      "dest": "/api/final"
+      "dest": "/api/client"
     },
     {
       "handle": "filesystem"
